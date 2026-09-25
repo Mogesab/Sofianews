@@ -44,3 +44,32 @@ def write_wav(path: str, audio: np.ndarray, sr: int = 24000) -> None:
         w.setsampwidth(2)
         w.setframerate(sr)
         w.writeframes(pcm.tobytes())
+
+
+def imread(path, flag=None):
+    """Unicode-safe cv2.imread: OpenCV on Windows chokes on non-ASCII paths
+    (Amharic folder names, etc.). Read the bytes ourselves with Python, then
+    hand them to cv2.imdecode, which does not care about the path at all."""
+    import cv2
+    from pathlib import Path as _P
+    p = _P(path)
+    data = np.fromfile(str(p), dtype=np.uint8)
+    if data.size == 0:
+        return None
+    if flag is None:
+        return cv2.imdecode(data, cv2.IMREAD_UNCHANGED)
+    return cv2.imdecode(data, flag)
+
+
+def imwrite(path, image) -> bool:
+    """Unicode-safe cv2.imwrite: encode in memory, then write with Python."""
+    import cv2
+    from pathlib import Path as _P
+    p = _P(path)
+    ext = (p.suffix or ".png").lower()
+    ok, buf = cv2.imencode(ext, image)
+    if not ok:
+        return False
+    p.parent.mkdir(parents=True, exist_ok=True)
+    buf.tofile(str(p))
+    return True

@@ -30,7 +30,8 @@ def _smooth(edge0, edge1, x):
 class FaceAnimator:
     def __init__(self, image_path: Path, landmarks_path: Path, width: int, height: int):
         lm = json.loads(Path(landmarks_path).read_text(encoding="utf-8"))
-        img = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
+        from . import media
+        img = media.imread(image_path, cv2.IMREAD_COLOR)
         if img is None:
             raise FileNotFoundError(image_path)
         self.W, self.H = width, height

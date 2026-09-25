@@ -138,13 +138,14 @@ class RobotAnimator:
     def __init__(self, image_path: Path, landmarks_path: Path, width: int, height: int, outfit: dict | None = None):
         lm = json.loads(Path(landmarks_path).read_text(encoding="utf-8"))
         folder = Path(landmarks_path).parent
-        img = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
+        from . import media
+        img = media.imread(image_path, cv2.IMREAD_COLOR)
         if img is None:
             raise FileNotFoundError(image_path)
         lay = lm["layers"]
-        matte = cv2.imread(str(folder / lay["matte"]), cv2.IMREAD_GRAYSCALE)
-        plate = cv2.imread(str(folder / lay["plate"]), cv2.IMREAD_COLOR)
-        gtext = cv2.imread(str(folder / lay["globe_text"]), cv2.IMREAD_UNCHANGED)
+        matte = media.imread(folder / lay["matte"], cv2.IMREAD_GRAYSCALE)
+        plate = media.imread(folder / lay["plate"], cv2.IMREAD_COLOR)
+        gtext = media.imread(folder / lay["globe_text"], cv2.IMREAD_UNCHANGED)
         if matte is None or plate is None or gtext is None:
             raise FileNotFoundError("robot layers missing - run: python tools/build_robot.py")
         img = wardrobe.apply(img, matte, lm, outfit)
