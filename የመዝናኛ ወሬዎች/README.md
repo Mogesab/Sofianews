@@ -28,16 +28,28 @@ so the same episode can be posted anytime that week.
 4. **Sofia on camera** — the same natural-motion animated presenter engine as
    before (head/torso/hands micro-movements, blinks, breath, phoneme-accurate
    lip-sync). New photo: `assets/presenters/sofia.png`.
-5. **Behind-shoulder screen** — while Sofia presents each story, the framed
-   monitor above her shoulder plays footage related to that story (Pexels /
-   Pixabay stock, or your own clips in `assets/broll/`). Turn it off with
-   `"show_inset": false`.
-6. **Weekly outfit change** — put one Sofia photo per week in
-   `assets/presenters/` (e.g. `sofia.png`, `sofia-red-dress.png`,
-   `sofia-yellow-blouse.png`) and set `"presenter_rotation": true` +
-   `"presenter_rotation_period": "weekly"`. Sofia's outfit will change once a
-   week automatically. Use `tools/add_suit.py` to copy Sofia's landmarks onto a
-   new photo (same 941×1672 crop as `assets/journalist.png`).
+5. **Behind-shoulder screen** — while Sofia presents each story, a framed
+   monitor above her shoulder shows a still image of that exact story: the
+   picture the news outlet itself attached to the article (from the RSS feed),
+   with a subtle slow zoom for interest. When the outlet published no image
+   and no Pexels / Pixabay stock photo matches, the screen is simply hidden
+   for that story rather than showing a generic placeholder. Turn it off with
+   `"show_inset": false`; go back to the old video b-roll with
+   `"inset_mode": "clips"`.
+6. **Robot-style motion, human face** — Sofia's face is a real photo but she
+   moves like the Mister Robot anchor: head, torso and hands snap between
+   poses in stepwise servo movements, and her mouth opens in quantised
+   mechanical increments in time with the phonemes. Set `"motion_style":
+   "auto"` (or remove the key) if you'd rather have naturally smooth human
+   motion instead.
+7. **Weekly outfit change (upload from the browser)** — the app opens in
+   your browser with an "Sofia's outfits" panel. Drop a new PNG into it
+   (exactly 941×1672 pixels, same face and framing as `assets/journalist.png`)
+   and click the card to make Sofia wear it. All uploaded outfits are saved
+   under `assets/presenters/` and reuse Sofia's landmarks automatically. You
+   can also enable weekly rotation with `"presenter_rotation": true` +
+   `"presenter_rotation_period": "weekly"` and let Sofia change outfits on
+   her own each week.
 
 ## Run
 1. Install Python 3.10+.
@@ -62,7 +74,10 @@ The browser opens at http://127.0.0.1:8767. Press **Start broadcast**. Output:
 | presenter_today | sofia | which photo in `assets/presenters/` to use |
 | presenter_rotation | false | true = rotate through every photo in `assets/presenters/` |
 | presenter_rotation_period | daily | set `weekly` to change outfit once per ISO week |
-| show_inset | true | over-the-shoulder screen with story-matched footage |
+| show_inset | true | over-the-shoulder screen |
+| inset_mode | images | `images` = still photo per story (from the outlet, then Pexels/Pixabay). `clips` = old video b-roll |
+| inset_fallback | none | with `inset_mode: images`, `none` hides the screen when no photo is found |
+| motion_style | robot | `robot` = mechanical servo motion + stepped mouth; `auto` = smooth human motion |
 | max_age_hours | 168 | 168 = past 7 days (weekly show) |
 | date_style | none | `none` = no date on screen (default for Sofia) |
 | news_focus | entertainment | picks up the US entertainment feeds in `studio/news.py` |
@@ -71,23 +86,28 @@ The browser opens at http://127.0.0.1:8767. Press **Start broadcast**. Output:
 Everything else is inherited from the original studio — see the section below
 for advanced tuning (lip-sync, camera moves, over-the-shoulder screen).
 
-## Adding more Sofia outfits (weekly rotation)
+## Adding more Sofia outfits
 
-1. Generate or edit a new Sofia photo — same face, same framing, **exactly**
-   941×1672 pixels, mouth closed, front-facing. Change only the clothes and
-   background if you like.
-2. Copy Sofia's landmarks onto it:
-   ```
-   python tools/add_suit.py path/to/new_sofia.png sofia-week-red
-   ```
-   That adds `assets/presenters/sofia-week-red.png` + `.json`.
-3. Set in `config.json`:
-   ```json
-   "presenter_today": "",
-   "presenter_rotation": true,
-   "presenter_rotation_period": "weekly"
-   ```
-Sofia will now wear a different outfit every ISO week.
+The easiest way — **use the browser panel**. Open http://127.0.0.1:8767, scroll
+to "Sofia's outfits", drop a new PNG (exactly 941 × 1672, same face and
+framing, mouth closed, front-facing) and click the new card. It becomes
+Sofia's active outfit for the next broadcast. All uploaded photos live under
+`assets/presenters/`.
+
+Prefer the command line? Same idea, from the terminal:
+```
+python tools/add_suit.py path/to/new_sofia.png sofia-red-dress
+```
+
+For automatic weekly rotation without picking each week yourself, set in
+`config.json`:
+```json
+"presenter_today": "",
+"presenter_rotation": true,
+"presenter_rotation_period": "weekly"
+```
+Sofia will then cycle through every photo in `assets/presenters/`, one per
+ISO week.
 
 ## Behind-the-scenes: what was reused from the Mr Robot studio
 Sofia uses the same rendering pipeline (`studio/pipeline.py`), lip-sync

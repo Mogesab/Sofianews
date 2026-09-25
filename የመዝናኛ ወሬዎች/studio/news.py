@@ -47,6 +47,14 @@ def _date(txt: str):
     return d if d.tzinfo else d.replace(tzinfo=timezone.utc)
 
 
+def _image_from_html(text: str) -> str:
+    """Best-effort <img src="…"> extraction from a summary/description blob."""
+    if not text:
+        return ""
+    m = re.search(r'<img[^>]+src=["\']([^"\']+)["\']', text, re.I)
+    return m.group(1) if m else ""
+
+
 def _parse(name: str, region: str, xml_bytes: bytes) -> list[dict]:
     out = []
     root = ET.fromstring(xml_bytes)
@@ -55,17 +63,44 @@ def _parse(name: str, region: str, xml_bytes: bytes) -> list[dict]:
         if tag not in ("item", "entry"):
             continue
         f = {}
+        image = ""
         for ch in node:
             t = ch.tag.split("}")[-1]
             if t == "link":
                 f["link"] = ch.attrib.get("href") or (ch.text or "").strip()
             elif t in ("title", "description", "summary", "encoded", "content", "pubDate", "published", "updated", "date"):
                 f.setdefault(t, (ch.text or "").strip())
+            # RSS/Atom image hints — Variety, THR, EW, Deadline etc. all publish one of these
+            elif t in ("thumbnail", "content"):
+                url = ch.attrib.get("url") or ""
+                medium = (ch.attrib.get("medium") or "").lower()
+                mtype = (ch.attrib.get("type") or "").lower()
+                if url and (medium == "image" or mtype.startswith("image/") or url.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))):
+                    if not image:
+                        image = url
+            elif t == "enclosure":
+                url = ch.attrib.get("url") or ""
+                mtype = (ch.attrib.get("type") or "").lower()
+                if url and (mtype.startswith("image/") or url.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))):
+                    if not image:
+                        image = url
         title = _strip(f.get("title", ""))
         if not title:
             continue
-        summary = _strip(f.get("description") or f.get("summary") or f.get("encoded") or f.get("content") or "")
+        raw_html = f.get("description") or f.get("summary") or f.get("encoded") or f.get("content") or ""
+        summary = _strip(raw_html)
+        if not image:                                     # try nested media groups (Rolling Stone etc.)
+            for d in node.iter():
+                dt = d.tag.split("}")[-1]
+                if dt in ("thumbnail", "content", "image"):
+                    url = d.attrib.get("url") or d.attrib.get("href") or ""
+                    if url and url.lower().split("?", 1)[0].endswith((".jpg", ".jpeg", ".png", ".webp")):
+                        image = url
+                        break
+        if not image:
+            image = _image_from_html(raw_html)
         out.append(dict(source=name, region=region, title=title, summary=summary[:600], link=f.get("link", ""),
+                        image=image,
                         published=_date(f.get("pubDate") or f.get("published") or f.get("updated") or f.get("date"))))
     return out
 

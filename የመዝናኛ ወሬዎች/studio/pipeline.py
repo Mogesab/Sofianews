@@ -102,6 +102,7 @@ def run(cfg: dict, progress=lambda stage, frac, msg="": None) -> dict:
     pres_kind = presenters.kind(pres_landmarks)
     log(f"Presenter for today: {pres_image.name}")
     todays_outfit = None
+    motion_style = str(cfg.get("motion_style", "auto")).lower()
     if pres_kind == "robot":
         todays_outfit = outfit.pick(cfg, today.date())
         if todays_outfit:
@@ -109,6 +110,36 @@ def run(cfg: dict, progress=lambda stage, frac, msg="": None) -> dict:
         arrays = robot_motion.build(n_frames, fps, lip, story_starts=story_starts, cue_starts=cue_starts,
                                     cue_ends=cue_ends, camera=bool(cfg.get("camera_moves", True)),
                                     lead_in=float(cfg.get("lead_in_sec", 0.6)))
+    elif motion_style == "robot":
+        # Sofia is a human photo but should move mechanically like the robot: reuse the
+        # robot's stepwise servo curves for head/eyes and quantise the mouth shapes.
+        log("Motion style: robot (mechanical head/hands/mouth on a human face)")
+        r = robot_motion.build(n_frames, fps, lip, story_starts=story_starts, cue_starts=cue_starts,
+                               cue_ends=cue_ends, camera=bool(cfg.get("camera_moves", True)),
+                               lead_in=float(cfg.get("lead_in_sec", 0.6)))
+        mot = motion.build(n_frames, fps, lip, story_starts=story_starts,
+                           cue_starts=cue_starts, cue_ends=cue_ends)
+        arrays = {k: v for k, v in lip.items() if k.startswith("m")}
+        # step-quantise the mouth so it opens in mechanical increments (5 levels)
+        from .robot_motion import _quantise
+        for k in ("mopen", "mspread", "mpress", "mteeth", "mtuck", "mround"):
+            if k in arrays:
+                arrays[k] = _quantise(np.asarray(arrays[k], dtype=np.float32), 5)
+        # map robot head/body servo output onto the human-face key names
+        arrays.update(dict(
+            tx=(r["h_tx"] + 0.4 * r["b_tx"]).astype(np.float32),
+            ty=(r["h_ty"] + 0.4 * r["b_ty"]).astype(np.float32),
+            rot=(r["h_rot"] + 0.5 * r["b_rot"]).astype(np.float32),
+            blink=r["blink"].astype(np.float32),
+            gx=r["gx"].astype(np.float32),
+            gy=r["gy"].astype(np.float32),
+            lid=mot["lid"],
+            brow=mot["brow"],
+            breath=mot["breath"],
+            handshift=mot["handshift"],
+            pageflip=mot["pageflip"],
+            t=r["t"].astype(np.float32),
+        ))
     else:
         mot = motion.build(n_frames, fps, lip, story_starts=story_starts,
                            cue_starts=cue_starts, cue_ends=cue_ends)
@@ -119,19 +150,27 @@ def run(cfg: dict, progress=lambda stage, frac, msg="": None) -> dict:
     wav = str(work / "narration.wav")
     write_wav(wav, audio, voice.SR)
 
-    # 5 ── over-the-shoulder screen: story-matched footage
+    # 5 ── over-the-shoulder screen: a still image related to each story.
+    #     For Sofia (entertainment show) we prefer the outlet's own picture from the RSS
+    #     item over stock video; if inset_mode is "clips" we go back to the old b-roll path.
     inset_strip, inset_spans = None, []
     if cfg.get("show_inset", True):
-        progress("render", 0.0, "Finding footage for the over-the-shoulder screen…")
+        progress("render", 0.0, "Finding pictures for the over-the-shoulder screen…")
         try:
             from .inset import InsetScreen
             _, _, bw, bh = InsetScreen.box_size(W, H)
-            clips = broll.find_clips(script, cfg, config.ASSETS, log=lambda m: progress("render", 0.0, m))
+            inset_mode = str(cfg.get("inset_mode", "images")).lower()
+            if inset_mode == "clips":
+                clips = broll.find_clips(script, cfg, config.ASSETS,
+                                         log=lambda m: progress("render", 0.0, m))
+            else:
+                clips = broll.find_story_images(script, items, cfg, config.ASSETS,
+                                                log=lambda m: progress("render", 0.0, m))
             inset_strip, inset_spans = broll.build_strip(
                 clips, timeline["stories"], dur, work, bw, bh, fps,
                 log=lambda m: progress("render", 0.0, m),
                 cache=config.ASSETS / broll.CACHE_NAME,
-                fallback=str(cfg.get("inset_fallback", "generated")))
+                fallback=str(cfg.get("inset_fallback", "none")))
         except Exception as exc:
             progress("render", 0.0, f"Over-the-shoulder screen skipped ({exc})")
             inset_strip, inset_spans = None, []

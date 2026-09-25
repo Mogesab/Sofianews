@@ -32,6 +32,12 @@ from . import media
 
 CACHE_NAME = "broll_cache"
 TIMEOUT = 25
+IMG_EXTS = (".jpg", ".jpeg", ".png", ".webp")
+VIDEO_EXTS = (".mp4", ".mov", ".webm", ".mkv", ".m4v")
+
+
+def is_still(p: Path | None) -> bool:
+    return p is not None and p.suffix.lower() in IMG_EXTS
 
 # story words -> what actually looks good as footage
 VISUAL_HINTS = [
@@ -122,6 +128,77 @@ def _download(url: str, dest: Path) -> Path | None:
         return None
 
 
+def _fetch_story_image(story: dict, items: list[dict], cache: Path, used: set) -> Path | None:
+    """Download the image the news outlet itself attached to a story used in this segment."""
+    for i in story.get("sources", []):
+        if not (isinstance(i, int) and 1 <= i <= len(items)):
+            continue
+        url = items[i - 1].get("image") or ""
+        if not url:
+            continue
+        stem = re.sub(r"[^A-Za-z0-9]+", "_", url)[-80:] or f"story_{i}"
+        # keep the outlet's extension when it looks like an image, else default to .jpg
+        ext = ".jpg"
+        for e in IMG_EXTS:
+            if url.lower().split("?", 1)[0].endswith(e):
+                ext = e
+                break
+        dest = cache / f"item_{stem}{ext}"
+        if dest in used:
+            continue
+        if dest.exists() and dest.stat().st_size > 10_000:
+            return dest
+        got = _download(url, dest)
+        if got:
+            return got
+    return None
+
+
+def _pexels_photo(key: str, q: str, cache: Path, used: set) -> Path | None:
+    url = "https://api.pexels.com/v1/search?per_page=12&orientation=portrait&size=medium&query=" + urllib.parse.quote(q)
+    try:
+        data = _get_json(url, {"Authorization": key, "User-Agent": "MA-Studio/1.0"})
+    except Exception:
+        return None
+    for photo in data.get("photos", []):
+        pid = photo.get("id")
+        dest = cache / f"pexels_photo_{pid}.jpg"
+        if dest in used:
+            continue
+        if dest.exists():
+            return dest
+        src = (photo.get("src") or {})
+        pick = src.get("large") or src.get("medium") or src.get("large2x")
+        if not pick:
+            continue
+        got = _download(pick, dest)
+        if got:
+            return got
+    return None
+
+
+def _pixabay_photo(key: str, q: str, cache: Path, used: set) -> Path | None:
+    url = (f"https://pixabay.com/api/?key={urllib.parse.quote(key)}&per_page=12&image_type=photo&safesearch=true&q="
+           + urllib.parse.quote(q))
+    try:
+        data = _get_json(url, {"User-Agent": "MA-Studio/1.0"})
+    except Exception:
+        return None
+    for hit in data.get("hits", []):
+        dest = cache / f"pixabay_photo_{hit.get('id')}.jpg"
+        if dest in used:
+            continue
+        if dest.exists():
+            return dest
+        pick = hit.get("largeImageURL") or hit.get("webformatURL")
+        if not pick:
+            continue
+        got = _download(pick, dest)
+        if got:
+            return got
+    return None
+
+
 def _pexels(key: str, q: str, cache: Path, used: set) -> Path | None:
     url = ("https://api.pexels.com/videos/search?per_page=12&orientation=landscape&size=medium&query="
            + urllib.parse.quote(q))
@@ -167,6 +244,30 @@ def _pixabay(key: str, q: str, cache: Path, used: set) -> Path | None:
         if got:
             return got
     return None
+
+
+def find_story_images(script: dict, items: list[dict], cfg: dict, assets: Path,
+                      log=lambda m: None) -> list[Path | None]:
+    """One STILL IMAGE per story. Priority: the outlet's own picture (from RSS), then
+    Pexels/Pixabay photo search. Returns None for a story where nothing was found —
+    the over-shoulder screen simply won't appear during that story."""
+    cache = assets / CACHE_NAME
+    cache.mkdir(parents=True, exist_ok=True)
+    pex = str(cfg.get("pexels_api_key", "")).strip()
+    pix = str(cfg.get("pixabay_api_key", "")).strip()
+
+    out, used = [], set()
+    for i, story in enumerate(script["stories"]):
+        img = _fetch_story_image(story, items, cache, used)
+        if img is None and pex:
+            img = _pexels_photo(pex, query_for(story), cache, used)
+        if img is None and pix:
+            img = _pixabay_photo(pix, query_for(story), cache, used)
+        if img is not None:
+            used.add(img)
+        out.append(img)
+        log(f"Story image {i + 1}/{len(script['stories'])}: " + (img.name if img else "none"))
+    return out
 
 
 def find_clips(script: dict, cfg: dict, assets: Path, log=lambda m: None) -> list[Path | None]:
@@ -307,7 +408,7 @@ def build_strip(clips: list[Path | None], stories: list[dict], duration: float, 
     """
     # anything we could not source becomes a generated graphic, so the screen
     # stays alive right through the episode
-    kinds = ["clip" if c is not None else "generated" for c in clips]
+    kinds = ["still" if is_still(c) else ("clip" if c is not None else "generated") for c in clips]
     if fallback == "generated" and cache is not None:
         clips = list(clips)
         for i, c in enumerate(clips):
@@ -341,12 +442,22 @@ def build_strip(clips: list[Path | None], stories: list[dict], duration: float, 
             cursor = end
             continue
         seg = segs_dir / f"seg_{i:03d}.mp4"
-        # loop the clip to cover the whole story, crop to the box, strip audio
-        vf = (f"scale={bw}:{bh}:force_original_aspect_ratio=increase,"
-              f"crop={bw}:{bh},fps={fps},setsar=1,eq=saturation=1.06:contrast=1.03")
-        p = media.run(["-stream_loop", "-1", "-i", str(clip), "-t", f"{seconds:.3f}",
-                       "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-                       "-pix_fmt", "yuv420p", str(seg)])
+        # Ken-Burns pan/zoom for a still image; loop-and-crop for a video clip.
+        if is_still(clip):
+            zoom_frames = max(2, int(round(seconds * fps)))
+            vf = (f"scale=iw*2:ih*2,"
+                  f"zoompan=z='min(zoom+0.0009,1.10)':d={zoom_frames}:s={bw}x{bh}:fps={fps},"
+                  f"setsar=1,eq=saturation=1.05:contrast=1.02")
+            p = media.run(["-loop", "1", "-i", str(clip), "-t", f"{seconds:.3f}",
+                           "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                           "-pix_fmt", "yuv420p", str(seg)])
+        else:
+            # loop the clip to cover the whole story, crop to the box, strip audio
+            vf = (f"scale={bw}:{bh}:force_original_aspect_ratio=increase,"
+                  f"crop={bw}:{bh},fps={fps},setsar=1,eq=saturation=1.06:contrast=1.03")
+            p = media.run(["-stream_loop", "-1", "-i", str(clip), "-t", f"{seconds:.3f}",
+                           "-vf", vf, "-an", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                           "-pix_fmt", "yuv420p", str(seg)])
         if p.returncode != 0 or not seg.exists():
             log(f"Could not prepare b-roll for story {i + 1}; that story runs without the screen.")
             filler(seconds, 200 + i)

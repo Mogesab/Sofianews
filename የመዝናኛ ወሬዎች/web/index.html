@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en-US">
+<html lang="am">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>የእለቱ ዜና በሚስተር ሮቦት</title>
+<title>የመዝናኛ ወሬዎች · ሶፊያ</title>
 <style>
   :root{--navy:#050d24;--navy2:#0a1a44;--red:#d7263d;--blue:#1e64dc;--ice:#96c3ff;--txt:#eaf1ff;--mut:#8fa3cc}
   *{box-sizing:border-box}
@@ -55,11 +55,29 @@
   textarea{width:100%;height:230px;margin-top:12px;background:#050d24;color:var(--txt);border:1px solid #1a2f6b;border-radius:8px;padding:12px;
     font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
   .err-box{color:#ffb3bb;font-size:14px;line-height:1.5;word-break:break-word}
+  .outfits{margin-top:22px;background:#08143a;border:1px solid #1a2f6b;border-radius:12px;padding:16px 18px}
+  .outfits h3{margin:0 0 6px;font-size:16px}
+  .outfits p{margin:0 0 12px;color:var(--mut);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:12px}
+  .card2{position:relative;background:#050d24;border:1px solid #1a2f6b;border-radius:10px;overflow:hidden;text-align:center;cursor:pointer;transition:border-color .2s}
+  .card2:hover{border-color:var(--ice)}
+  .card2.active{border-color:#2fbf6b;box-shadow:0 0 0 2px rgba(47,191,107,.3)}
+  .card2 img{display:block;width:100%;aspect-ratio:9/16;object-fit:cover;background:#000}
+  .card2 .cname{padding:6px 8px;font-size:12px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card2 .badge{position:absolute;top:4px;left:4px;background:#2fbf6b;color:#000;font-size:10px;font-weight:700;padding:2px 6px;border-radius:99px}
+  .card2 .del{position:absolute;top:4px;right:4px;background:rgba(215,38,61,.9);color:#fff;font-size:11px;line-height:1;border:0;border-radius:99px;width:20px;height:20px;cursor:pointer;display:none}
+  .card2:hover .del{display:block}
+  .drop{margin-top:6px;padding:16px;border:2px dashed #23428f;border-radius:10px;text-align:center;cursor:pointer;transition:background .2s,border-color .2s}
+  .drop.hover{background:rgba(30,100,220,.1);border-color:var(--ice)}
+  .drop input{display:none}
+  .drop .rules{color:var(--mut);font-size:12px;margin-top:6px}
+  .uploadmsg{margin-top:10px;font-size:13px;min-height:16px}
+  .uploadmsg.ok{color:#a6f0be}.uploadmsg.err{color:#ffb3bb}
 </style>
 </head>
 <body>
 <header>
-  <div class="logo"><b>MA</b><div><span id="logotitle">STUDIO</span><small id="logosub">WORLD NEWS</small></div></div>
+  <div class="logo"><b>ሶ</b><div><span id="logotitle">SOFIA</span><small id="logosub">የመዝናኛ ወሬዎች</small></div></div>
   <div id="pill" class="pill">Starting…</div>
 </header>
 <main>
@@ -68,14 +86,14 @@
     <video id="v" playsinline controls controlsList="nodownload" preload="auto"></video>
 
     <div class="card" id="prep">
-      <h2 id="ptitle">Preparing today’s broadcast</h2>
-      <p id="psub">Collecting today's major headlines, writing the Amharic script with Gemini, recording the Amharic voice and rendering the robot anchor in HD.</p>
+      <h2 id="ptitle">Preparing this week’s broadcast</h2>
+      <p id="psub">Collecting the week's biggest US entertainment stories, writing Sofia's Amharic script with Gemini, recording her voice and rendering the HD video.</p>
       <div class="bar"><i id="fill"></i></div>
       <div class="row"><span id="pmsg">Getting ready…</span><span id="ppct">0%</span></div>
       <ol id="steps">
-        <li data-s="news"><i></i>Collecting today's top headlines</li>
-        <li data-s="script"><i></i>Writing the script</li>
-        <li data-s="voice"><i></i>Recording the anchor’s voice</li>
+        <li data-s="news"><i></i>Collecting the week's top entertainment stories</li>
+        <li data-s="script"><i></i>Writing Sofia's Amharic script</li>
+        <li data-s="voice"><i></i>Recording Sofia's voice</li>
         <li data-s="render"><i></i>Rendering the HD video</li>
       </ol>
       <div class="row"><span>Elapsed <b id="el">0:00</b></span><span>Keep this window open</span></div>
@@ -95,13 +113,25 @@
     <button class="btn" id="again" onclick="regen()" disabled>↻&nbsp; New broadcast with the latest news</button>
     <span class="info" id="info"></span>
   </div>
-  <div class="done-msg" id="done">That’s the end of the broadcast. Your video is ready to upload to YouTube — use the download button above.</div>
+  <div class="done-msg" id="done">That’s the end of the broadcast. Your video is ready to upload to YouTube, TikTok and Instagram Reels — use the download button above.</div>
+
+  <div class="outfits">
+    <h3>Sofia’s outfits</h3>
+    <p>Upload a new Sofia photo any time you want her wearing something different. The face, framing and canvas must match — <b>PNG, exactly 941 × 1672 pixels, front-facing, mouth closed</b>. Click a card to use that outfit; the trash icon removes it.</p>
+    <div class="grid" id="outfits"></div>
+    <label class="drop" id="drop">
+      <div><b>Upload a new Sofia outfit (PNG)</b></div>
+      <div class="rules">Drop a file here or click to choose · 941 × 1672 · same face &amp; framing as the reference photo</div>
+      <input type="file" id="file" accept="image/png">
+    </label>
+    <div id="upmsg" class="uploadmsg"></div>
+  </div>
 
   <details id="yt">
-    <summary>YouTube title, description &amp; chapters</summary>
+    <summary>Title, description &amp; chapters (YouTube · TikTok · Instagram)</summary>
     <textarea id="ytxt" readonly></textarea>
     <div class="actions"><button class="btn" id="copy">Copy text</button>
-      <span class="info">Tip: when you upload, switch on “Altered or synthetic content” — the presenter and voice are AI-generated.</span></div>
+      <span class="info">Tip: on YouTube switch on “Altered or synthetic content” — Sofia and her voice are AI-generated. Same disclosure applies on TikTok / Instagram.</span></div>
   </details>
 </main>
 
@@ -163,6 +193,75 @@ async function regen(){
   await fetch("/api/generate", {method:"POST"});
   poll();
 }
+
+/* ---- outfits ---- */
+async function refreshOutfits(){
+  let list;
+  try { list = await (await fetch("/api/outfits", {cache:"no-store"})).json(); }
+  catch(e){ return; }
+  const g = $("outfits"); g.innerHTML = "";
+  for (const o of list){
+    const c = document.createElement("div");
+    c.className = "card2" + (o.active ? " active" : "");
+    c.title = o.active ? "Active outfit — click to keep, use trash to remove" : "Click to make this Sofia's outfit";
+    c.innerHTML =
+      (o.active ? '<span class="badge">ACTIVE</span>' : '') +
+      '<button class="del" title="Delete">×</button>' +
+      '<img src="/outfit.png?name=' + encodeURIComponent(o.name) + '&t=' + Date.now() + '" alt="">' +
+      '<div class="cname">' + o.name + '</div>';
+    c.onclick = async e => {
+      if (e.target.classList.contains("del")){
+        e.stopPropagation();
+        if (!confirm("Delete outfit \"" + o.name + "\"?")) return;
+        await fetch("/api/outfit/delete?name=" + encodeURIComponent(o.name), {method:"POST"});
+        refreshOutfits();
+        return;
+      }
+      await fetch("/api/outfit/select?name=" + encodeURIComponent(o.name), {method:"POST"});
+      refreshOutfits();
+      setUp("Sofia will wear " + o.name + " in the next broadcast.", "ok");
+    };
+    g.appendChild(c);
+  }
+}
+
+function setUp(msg, cls){
+  const el = $("upmsg"); el.textContent = msg || ""; el.className = "uploadmsg " + (cls||"");
+}
+
+async function uploadOutfit(file){
+  if (!file){ return; }
+  if (file.type && file.type !== "image/png"){ setUp("The file must be a PNG.", "err"); return; }
+  // client-side size check to give an early hint
+  const buf = await file.arrayBuffer();
+  const dv = new DataView(buf);
+  const sig = "89504E470D0A1A0A";
+  const got = Array.from(new Uint8Array(buf.slice(0,8))).map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase();
+  if (got !== sig){ setUp("That doesn't look like a PNG file.", "err"); return; }
+  const w = dv.getUint32(16), h = dv.getUint32(20);
+  if (w !== 941 || h !== 1672){
+    setUp("The photo must be exactly 941 × 1672 pixels (got " + w + " × " + h + ").", "err");
+    return;
+  }
+  const name = (file.name.replace(/\.[^.]+$/,"") || "outfit").slice(0,40);
+  setUp("Uploading " + file.name + "…", "");
+  try {
+    const r = await fetch("/api/outfit?name=" + encodeURIComponent(name),
+      {method:"POST", headers:{"Content-Type":"image/png"}, body: buf});
+    const j = await r.json();
+    if (!r.ok || j.error){ setUp(j.error || "Upload failed.", "err"); return; }
+    setUp("Uploaded as \"" + j.name + "\" — click the card to make Sofia wear it.", "ok");
+    refreshOutfits();
+  } catch(e){ setUp("Upload failed: " + e, "err"); }
+}
+
+$("file").addEventListener("change", e => uploadOutfit(e.target.files[0]));
+const drop = $("drop");
+["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("hover"); }));
+["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("hover"); }));
+drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) uploadOutfit(e.dataTransfer.files[0]); });
+
+refreshOutfits();
 poll();
 </script>
 </body>
