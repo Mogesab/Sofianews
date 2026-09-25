@@ -54,7 +54,13 @@ def resolve(cfg: dict, assets: Path, today: date | None = None) -> tuple[Path, P
     if not pairs:
         return assets / cfg["presenter_image"], assets / "face.json"
     today = today or date.today()
-    i = today.toordinal() % len(pairs)
+    # "weekly" rotation changes the presenter (Sofia's outfit) once per ISO week; the default
+    # daily rotation keeps the old Mr Robot behaviour.
+    period = str(cfg.get("presenter_rotation_period", "daily")).lower()
+    if period == "weekly":
+        i = (today.isocalendar().week + today.isocalendar().year) % len(pairs)
+    else:
+        i = today.toordinal() % len(pairs)
     return pairs[i]
 
 

@@ -20,7 +20,8 @@ def _mmss(sec: float) -> str:
 def _youtube_text(script: dict, timeline: dict, items: list[dict], cfg: dict, today: datetime) -> str:
     studio = cfg["studio_name"]
     topic = cfg.get("topic_label", "WORLD NEWS").title()
-    lines = [script["title"], "", script.get("summary", "").strip() or f"የዛሬው ዋና ዋና ዜናዎች ከ{studio}።", "",
+    lines = [script["title"], "",
+             script.get("summary", "").strip() or f"የዚህ ሳምንት ትኩስ የመዝናኛ ወሬዎች — ከ{studio} ጋር።", "",
              "ምዕራፎች (CHAPTERS)", f"0:00 {studio}"]
     for st in timeline["stories"][1:-1]:
         lines.append(f"{_mmss(st['start'])} {st['headline']}")
@@ -31,10 +32,15 @@ def _youtube_text(script: dict, timeline: dict, items: list[dict], cfg: dict, to
             if 1 <= i <= len(items) and i not in seen:
                 seen.add(i)
                 lines.append(f"- {items[i - 1]['source']}: {items[i - 1]['title']} {items[i - 1]['link']}")
-    lines += ["", "ይህ ዝግጅት በሰው ሰራሽ አስተውሎት (AI) የተዘጋጀ ነው፤ የዜናው ጽሑፍ ከሕዝብ የዜና ምንጮች በAI የተጻፈ ሲሆን አቅራቢው ሮቦትና ድምፁ በAI የተፈጠሩ ናቸው።",
-              "This episode was produced with AI: the Amharic news script is AI-written from public news sources, "
-              "and the robot presenter and voice are AI-generated.", "",
-              "#Shorts #Amharic #AmharicNews #Ethiopia #ዜና #የእለቱ_ዜና #WorldNews"]
+    lines += ["",
+              "ይህ ዝግጅት በሰው ሰራሽ አስተውሎት (AI) የተዘጋጀ ነው፤ ጽሑፉ ከሕዝብ የዜና ምንጮች በAI የተጻፈ ሲሆን አቅራቢዋ ሶፊያና ድምጿ በAI የተፈጠሩ ናቸው።",
+              "This episode was produced with AI: the Amharic script is AI-written from public entertainment news "
+              "sources, and Sofia and her voice are AI-generated.",
+              "",
+              "— TAGS —",
+              "#Shorts #Reels #TikTok #Amharic #AmharicNews #Ethiopia #ኢትዮጵያ #ዜና "
+              "#የመዝናኛ_ወሬዎች #ሶፊያ #Sofia #Entertainment #Hollywood #Celebrity #Movies #Music "
+              "#Oscars #Grammys #ወሬ #ፊልም #ሙዚቃ #ኮከቦች #አዝናኝ"]
     return "\n".join(lines)
 
 
@@ -51,22 +57,15 @@ def run(cfg: dict, progress=lambda stage, frac, msg="": None) -> dict:
     work.mkdir(parents=True, exist_ok=True)
     log = lambda m: progress("script", 0.0, m)
 
-    # 1 ── headlines
-    progress("news", 0.0, "Collecting today's top world headlines…")
+    # 1 ── headlines — the past week's US entertainment stories
+    progress("news", 0.0, "Collecting this week's top US entertainment stories…")
     feeds = cfg.get("news_feeds") or news.FEEDS
-    world_feeds = [f for f in feeds if (f[2] if len(f) > 2 else "world") != "am"]
-    am_feeds = [f for f in feeds if len(f) > 2 and f[2] == "am"]
-    # world news only - nothing about Ethiopia. The Amharic newsrooms are only kept as a
-    # backup to read from if Gemini cannot write the script.
-    items = [i for i in news.gather(int(cfg["max_age_hours"]), limit=30 if target > 90 else 24,
-                                    feeds=world_feeds, us_ratio=0.0, priority_region="world")
+    items = [i for i in news.gather(int(cfg["max_age_hours"]), limit=40,
+                                    feeds=feeds, us_ratio=0.0, priority_region="entertainment")
              if not news.about_ethiopia(i)]
-    if am_feeds:
-        items += [dict(i, region="am") for i in news.gather(int(cfg["max_age_hours"]), limit=24, feeds=am_feeds,
-                                                            us_ratio=0.0) if not news.about_ethiopia(i)]
     if not items:
-        raise RuntimeError("Could not download any news. Check your internet connection and try again.")
-    progress("news", 1.0, f"Found {len(items)} fresh stories")
+        raise RuntimeError("Could not download any entertainment news. Check your internet connection and try again.")
+    progress("news", 1.0, f"Found {len(items)} fresh stories from the week")
 
     # 2 ── script
     progress("script", 0.1, "Writing today's script…")
@@ -143,8 +142,10 @@ def run(cfg: dict, progress=lambda stage, frac, msg="": None) -> dict:
                fonts=str(config.ASSETS / "fonts"), timeline=timeline, studio=cfg["studio_name"],
                topic_label=cfg.get("topic_label", "WORLD NEWS"),
                show_countdown=bool(cfg.get("show_countdown", True)), countdown_seconds=countdown_seconds,
-               date_label=ethiodate.label(today.date()) if cfg.get("date_style") == "ethiopian"
-               else today.strftime("%A · %b %d, %Y").upper().replace(" 0", " "), show_ai=bool(cfg["show_ai_label"]),
+               date_label=("" if str(cfg.get("date_style", "")).lower() == "none"
+                           else ethiodate.label(today.date()) if cfg.get("date_style") == "ethiopian"
+                           else today.strftime("%A · %b %d, %Y").upper().replace(" 0", " ")),
+               show_ai=bool(cfg["show_ai_label"]),
                font_bold=config.font(cfg, "font_bold"), font_regular=config.font(cfg, "font_regular"),
                labels=cfg.get("labels") or {},
                arrays=arrays, inset_strip=inset_strip, inset_spans=inset_spans)

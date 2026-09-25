@@ -62,13 +62,16 @@ def _short(text: str, words: int = 9) -> str:
 
 
 def intro_outro(studio: str, topic: str, today: datetime):
-    """No self-introduction: the show jumps straight into the first headline. The
-    intro slot is kept (with zero sentences) purely so story indexing stays aligned.
-    The outro is a short Amharic sign-off."""
-    intro = dict(headline=studio, ticker=None, sentences=[])
-    outro = dict(headline="ስለተከታተሉን እናመሰግናለን", ticker=None, sentences=[
-        dict(say="የዛሬው የዜና ዘገባችን ይህን ይመስል ነበር።", highlight="የዛሬው ዜና ይህ ነበር"),
-        dict(say=f"ለተጨማሪ ዜና {studio}ን ይከታተሉ፤ በሚቀጥለው እንገናኛለን።", highlight="ይከታተሉን • በሚቀጥለው እንገናኛለን"),
+    """Sofia opens the weekly entertainment show with her signature greeting, then goes
+    straight into the first story. No date is mentioned. The outro is a warm sign-off."""
+    intro = dict(headline=studio, ticker="ሶፊያ • የመዝናኛ ወሬዎች", sentences=[
+        dict(say="ከሳምንቱ የመዝናኛ ወሬዎች ጋር ሶፊያ ነኝ አብራችሁኝ ቆዩ።",
+             highlight="ሶፊያ ነኝ • አብራችሁኝ ቆዩ"),
+    ])
+    outro = dict(headline="ስለተከታተሉን እናመሰግናለን", ticker="በሚቀጥለው ሳምንት እንገናኛለን", sentences=[
+        dict(say="የዚህ ሳምንት የመዝናኛ ወሬዎቻችን ይህን ይመስል ነበር።", highlight="ወሬዎቹ ይህን ይመስሉ ነበር"),
+        dict(say="ላይክ አድርጉልን፣ ሰብስክራይብ አድርጉ፣ በሚቀጥለው ሳምንት እንገናኛለን።",
+             highlight="ላይክ • ሰብስክራይብ • እንገናኛለን"),
     ])
     return intro, outro
 
@@ -78,34 +81,37 @@ def _prompt(items: list[dict], today: datetime, words: int, n_stories: int, stud
     lines = []
     for i, it in enumerate(items, 1):
         lines.append(f"[{i}] {it['source']} — {it['title']} — {it['summary'][:420]}")
-    length = "60-second" if target_seconds <= 70 else f"{round(target_seconds / 60)}-minute"
-    return f"""You are the scriptwriter for an AMHARIC-language TV news broadcast called "{studio}" ("today's news with Mister Robot"), made for a {length} vertical YouTube video. Today is {today.strftime('%A, %B %d, %Y')}.
-Write the news segment that a robot news anchor will read on camera, using ONLY the news items below
-(the items are in English - translate the facts into natural Amharic).
+    length = f"{round(target_seconds / 60)}-minute"
+    return f"""You are the scriptwriter for an AMHARIC-language WEEKLY US-ENTERTAINMENT news show called "{studio}", presented by a warm, natural young woman named Sofia (ሶፊያ). It is a {length} vertical video for YouTube, TikTok and Instagram.
+Write the segment Sofia will read on camera, using ONLY the news items below (the items are in English — translate the facts into natural, conversational Amharic).
 
 RULES
 - WRITE EVERYTHING IN AMHARIC, in Ge'ez (Ethiopic) script: every "say", "highlight", "headline", "ticker", "title"
-  and "summary". Natural, correct, formal broadcast Amharic as used by ETV, BBC Amharic or VOA Amharic - not a
-  word-for-word translation. End every sentence with the Amharic full stop "።".
-- Cover the {n_stories} MAJOR WORLD headlines of the day: the international stories with the widest impact (wars and
-  conflicts, diplomacy, elections and governments, the global economy, disasters, science and technology), spread
-  across different regions of the world. Lead with the single biggest story. No duplicates.
-- Do NOT include any story about Ethiopia or Ethiopian politics, people, regions or events - world news only.
-- About {words} spoken Amharic words in total (each story roughly {words // n_stories} words), 2 to 4 short sentences
+  and "summary". Natural, warm, friendly broadcast Amharic — the tone of a young female entertainment presenter
+  chatting with her viewers, not stiff news reading. End every sentence with the Amharic full stop "።".
+- This is a WEEKLY US-ENTERTAINMENT roundup: cover the {n_stories} biggest ENTERTAINMENT stories of the past week —
+  famous American singers and musicians, movie actors and actresses, box-office and movie news, TV, awards
+  (Oscars, Grammys, Emmys, Golden Globes), red-carpet moments, celebrity relationships and public appearances.
+  Lead with the single biggest story of the week. No duplicates. NO politics, wars, disasters, sports or business.
+  Prefer clearly-sourced facts about named celebrities and named movies/songs/shows.
+- Do NOT include any story about Ethiopia.
+- About {words} spoken Amharic words in total (each story roughly {words // n_stories} words), 3 to 6 sentences
   per story, each story well under {max_highlight_seconds:.0f} seconds to read aloud.
-- Short, clear sentences (6 to 14 words) that are easy to say aloud. Engaging anchor style: open each story on its
-  most important detail.
-- Write numbers, percentages and years as Amharic words the anchor can read naturally. Write foreign names in Amharic
-  script the way Ethiopian media spell them (e.g. ትራምፕ, ዩክሬን, የተባበሩት መንግሥታት).
+- Short, clear sentences (6 to 14 words). Engaging, personal presenter style — Sofia is talking WITH the audience,
+  not reading AT them. It is fine to add a light reaction like "አስገራሚ ነው" or "እንኳን ደስ አላችሁ" where natural.
+- Write numbers, percentages and years as Amharic words the anchor can read naturally. Write celebrity and movie
+  names in Amharic script the way Ethiopian media spell them (e.g. ቢዮንሴ, ቴለር ስዊፍት, ብራድ ፒት, ማርቬል),
+  but you may keep a very well-known short English title inside quotes if there is no Amharic form.
 - Use only facts present in the items. Never invent numbers, quotes, dates or names.
-- Credit the source naturally at most once per story, e.g. "ቢቢሲ እንደዘገበው".
-- Do NOT greet the viewer, introduce the anchor or say who you are - start straight with the first headline. No
-  sign-off (added separately). Do not mention the date.
+- Credit the source naturally at most once per story, e.g. "ቫራይቲ እንደዘገበው".
+- Do NOT greet the viewer or introduce Sofia — the greeting is added separately. Do NOT mention today's date or the
+  day of the week. Never say "ዛሬ"; use "በዚህ ሳምንት" or "በቅርቡ" instead.
 - Plain text for speech: no markdown, emojis, parentheses, URLs, hashtags or Latin letters in "say".
 - For EVERY sentence give a "highlight": the on-screen key point, 2 to 6 Amharic words, factual and punchy.
 - "headline": a 1 to 3 word Amharic label for the story tab. "ticker": one Amharic line, at most 10 words.
 - "sources": the item numbers you used.
-- "title": an Amharic YouTube title (max 70 characters) naming the top story. "summary": 1 to 2 Amharic sentences.
+- "title": an Amharic title (max 70 characters) naming the top story, prefixed with "የመዝናኛ ወሬዎች፦".
+  "summary": 1 to 2 Amharic sentences.
 
 Return ONLY valid JSON in this exact shape:
 {{"title": "...", "summary": "...", "stories": [{{"headline": "...", "ticker": "...", "sources": [1, 4],
@@ -193,13 +199,14 @@ def _word_count(stories: list[dict]) -> int:
 
 
 def offline_script(items: list[dict], n_stories: int, max_story_words: int = 999) -> dict:
-    """No LLM available: read headlines and summaries. Stops at exactly n_stories so a
-    short-form show can't quietly overshoot its target length by a whole extra story."""
+    """No LLM available: an entertainment show cannot really run without Amharic translation,
+    but we still return whatever Ethiopic-titled items exist so the caller can raise a
+    helpful error rather than crash."""
     stories = []
     for idx, it in enumerate(items, 1):
         if len(stories) >= n_stories:
             break
-        if not ETHIOPIC.search(it["title"]):          # without Gemini only Amharic-language items can be read
+        if not ETHIOPIC.search(it["title"]):
             continue
         st = _story_from_item(it, idx, max_words=max_story_words)
         if st:
@@ -264,9 +271,9 @@ def write(items: list[dict], cfg: dict, api_key: str, today: datetime, target_se
         try:
             stories = _validate(data)
         except ValueError:
-            raise RuntimeError("Gemini could not write today's Amharic script (it may be busy, or the key / daily "
-                               "quota is the problem), and there are not enough Amharic world-news headlines to read "
-                               "without it. Please press New broadcast again in a few minutes.") from None
+            raise RuntimeError("Gemini could not write this week's Amharic entertainment script (it may be busy, "
+                               "or the key / daily quota is the problem). Please press New broadcast again in a few "
+                               "minutes.") from None
     stories = _top_up(stories, items, words, n_stories, max_story_words=per_story_words, log=log)
     title = clean(data.get("title", "")) or f"{stories[0]['headline']} | {studio}"
     return dict(title=title[:95], summary=clean(data.get("summary", "")), mode=mode,

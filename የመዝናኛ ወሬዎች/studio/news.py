@@ -11,18 +11,20 @@ from email.utils import parsedate_to_datetime
 import requests
 
 FEEDS = [
-    # Amharic-language newsrooms (also what the show reads if Gemini is unavailable)
-    ("ቢቢሲ አማርኛ", "https://feeds.bbci.co.uk/amharic/rss.xml", "am"),
-    ("የአሜሪካ ድምፅ", "https://amharic.voanews.com/api/", "am"),
-    # major world newsrooms, in English - Gemini writes the Amharic script from these
-    ("BBC World", "http://feeds.bbci.co.uk/news/world/rss.xml", "world"),
-    ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml", "world"),
-    ("The Guardian World", "https://www.theguardian.com/world/rss", "world"),
-    ("NYT World", "https://rss.nytimes.com/services/xml/rss/nyt/World.xml", "world"),
-    ("NPR World", "https://feeds.npr.org/1004/rss.xml", "world"),
-    ("DW News", "https://rss.dw.com/rdf/rss-en-world", "world"),
-    ("Sky News World", "https://feeds.skynews.com/feeds/rss/world.xml", "world"),
-    ("BBC Africa", "http://feeds.bbci.co.uk/news/world/africa/rss.xml", "world"),
+    # US entertainment newsrooms - celebrities, movies, music. Gemini rewrites into Amharic.
+    ("Variety", "https://variety.com/feed/", "entertainment"),
+    ("The Hollywood Reporter", "https://www.hollywoodreporter.com/feed/", "entertainment"),
+    ("Deadline", "https://deadline.com/feed/", "entertainment"),
+    ("Billboard", "https://www.billboard.com/feed/", "entertainment"),
+    ("Rolling Stone", "https://www.rollingstone.com/music/music-news/feed/", "entertainment"),
+    ("Entertainment Weekly", "https://ew.com/feed/", "entertainment"),
+    ("People", "https://people.com/feed/", "entertainment"),
+    ("E! Online", "https://www.eonline.com/syndication/feeds/rssfeeds/topstories.xml", "entertainment"),
+    ("TMZ", "https://www.tmz.com/rss.xml", "entertainment"),
+    ("Vanity Fair Hollywood", "https://www.vanityfair.com/feed/hollywood/rss", "entertainment"),
+    ("IndieWire", "https://www.indiewire.com/feed/", "entertainment"),
+    ("Pitchfork", "https://pitchfork.com/rss/news/", "entertainment"),
+    ("BBC Entertainment", "http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml", "entertainment"),
 ]
 UA = {"User-Agent": "Mozilla/5.0 (compatible; MAStudioNews/1.0)"}
 
