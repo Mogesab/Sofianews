@@ -1,0 +1,41 @@
+{
+  "gemini_api_key": "AQ.Ab8RN6LS8z2bLsUHhEx0ptUkCBd6b6M0D_MVjH6_RRkQmAI-MA",
+  "gemini_model": "gemini-flash-latest",
+  "studio_name": "የእለቱ ዜና በሚስተር ሮቦት",
+  "file_prefix": "Yeletu-Zena-Mr-Robot",
+  "topic_label": "የዓለም ዜና",
+  "language": "am",
+  "tts_engine": "gemini",
+  "gemini_voice": "Charon",
+  "tts_models": [
+    "gemini-3.1-flash-tts-preview",
+    "gemini-2.5-flash-preview-tts"
+  ],
+  "backup_voice": "am-ET-AmehaNeural",
+  "words_per_second": 1.7,
+  "lipsync": "auto",
+  "date_style": "ethiopian",
+  "labels": {
+    "live": "ቀጥታ",
+    "time_left": "የቀረው ጊዜ",
+    "story": "ዜና {i} / {n}",
+    "ai": "በAI የተፈጠረ ሮቦት አቅራቢ"
+  },
+  "target_minutes": 3,
+  "width": 1080,
+  "height": 1920,
+  "show_ai_label": true,
+  "show_countdown": true,
+  "countdown_seconds": 0,
+  "show_inset": false,
+  "presenter_today": "robot",
+  "presenter_rotation": true,
+  "outfit_rotation": true,
+  "outfit_today": "",
+  "camera_moves": true,
+  "max_highlight_seconds": 20,
+  "port": 8766,
+  "pexels_api_key": "",
+  "pixabay_api_key": "",
+  "news_focus": "world"
+}

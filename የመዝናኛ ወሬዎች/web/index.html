@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>የእለቱ ዜና በሚስተር ሮቦት</title>
+<style>
+  :root{--navy:#050d24;--navy2:#0a1a44;--red:#d7263d;--blue:#1e64dc;--ice:#96c3ff;--txt:#eaf1ff;--mut:#8fa3cc}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:radial-gradient(1200px 700px at 50% -10%,#10296b 0%,var(--navy) 60%);color:var(--txt);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;min-height:100%}
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px;max-width:1280px;margin:0 auto}
+  .logo{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.5px}
+  .logo b{background:var(--red);color:#fff;padding:9px 11px;border-radius:7px;font-size:20px}
+  .logo span{font-size:20px}
+  .logo small{display:block;color:var(--ice);font-weight:600;letter-spacing:4px;font-size:11px;margin-top:2px}
+  .pill{font-size:13px;padding:7px 14px;border-radius:99px;background:#0d2260;border:1px solid #1d3a8a;color:var(--ice)}
+  .pill.live{background:#1a3a1f;border-color:#2c6a35;color:#8ff0a0}
+  .pill.err{background:#3a1216;border-color:#7a2530;color:#ffb3bb}
+  main{max-width:1280px;margin:0 auto;padding:0 28px 40px}
+  .stage{position:relative;width:100%;max-width:420px;margin:0 auto;aspect-ratio:9/16;background:#000;border-radius:14px;overflow:hidden;
+    box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px #1a2f6b}
+  .stage img,.stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+  .stage img{filter:brightness(.42) saturate(.9) blur(1.5px)}
+  video{display:none}
+  .card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(560px,86%);background:rgba(5,13,36,.86);
+    border:1px solid #23428f;border-radius:16px;padding:26px 28px;backdrop-filter:blur(6px)}
+  .card h2{margin:0 0 4px;font-size:22px}
+  .card p{margin:0 0 16px;color:var(--mut);font-size:14px}
+  .bar{height:10px;background:#12275f;border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),#5aa2ff);transition:width .6s ease}
+  .row{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);margin-top:8px}
+  ol{list-style:none;padding:0;margin:18px 0 0;display:grid;gap:8px}
+  ol li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--mut)}
+  ol li i{width:18px;height:18px;border-radius:50%;border:2px solid #2a4590;flex:none}
+  ol li.active{color:#fff}ol li.active i{border-color:var(--ice);border-top-color:transparent;animation:sp 1s linear infinite}
+  ol li.done{color:#b7c9f3}ol li.done i{background:#2fbf6b;border-color:#2fbf6b}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .go{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);cursor:pointer}
+  .go button{font-size:20px;font-weight:700;padding:18px 34px;border:0;border-radius:99px;background:var(--red);color:#fff;cursor:pointer;
+    box-shadow:0 10px 40px rgba(215,38,61,.5)}
+  .go button:hover{filter:brightness(1.1)}
+  .actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:18px}
+  .btn{appearance:none;border:0;border-radius:10px;padding:13px 20px;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;
+    display:inline-flex;align-items:center;gap:8px;color:#fff;background:#12307a}
+  .btn.primary{background:var(--blue)}
+  .btn.primary:hover{filter:brightness(1.12)}
+  .btn[disabled],.btn.off{opacity:.4;pointer-events:none}
+  .btn.pulse{animation:pl 1.4s ease-in-out infinite}
+  @keyframes pl{0%,100%{box-shadow:0 0 0 0 rgba(30,100,220,.7)}50%{box-shadow:0 0 0 12px rgba(30,100,220,0)}}
+  .info{color:var(--mut);font-size:13px}
+  .done-msg{display:none;margin-top:14px;padding:12px 16px;border-radius:10px;background:#0f2a1c;border:1px solid #23643b;color:#a6f0be;font-size:14px}
+  details{margin-top:22px;background:#08143a;border:1px solid #1a2f6b;border-radius:12px;padding:14px 18px}
+  summary{cursor:pointer;font-weight:700}
+  textarea{width:100%;height:230px;margin-top:12px;background:#050d24;color:var(--txt);border:1px solid #1a2f6b;border-radius:8px;padding:12px;
+    font:13px/1.5 ui-monospace,Consolas,monospace;resize:vertical}
+  .err-box{color:#ffb3bb;font-size:14px;line-height:1.5;word-break:break-word}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>MA</b><div><span id="logotitle">STUDIO</span><small id="logosub">WORLD NEWS</small></div></div>
+  <div id="pill" class="pill">Starting…</div>
+</header>
+<main>
+  <div class="stage" id="stage">
+    <img id="still" src="/still.png" alt="">
+    <video id="v" playsinline controls controlsList="nodownload" preload="auto"></video>
+
+    <div class="card" id="prep">
+      <h2 id="ptitle">Preparing today’s broadcast</h2>
+      <p id="psub">Collecting today's major headlines, writing the Amharic script with Gemini, recording the Amharic voice and rendering the robot anchor in HD.</p>
+      <div class="bar"><i id="fill"></i></div>
+      <div class="row"><span id="pmsg">Getting ready…</span><span id="ppct">0%</span></div>
+      <ol id="steps">
+        <li data-s="news"><i></i>Collecting today's top headlines</li>
+        <li data-s="script"><i></i>Writing the script</li>
+        <li data-s="voice"><i></i>Recording the anchor’s voice</li>
+        <li data-s="render"><i></i>Rendering the HD video</li>
+      </ol>
+      <div class="row"><span>Elapsed <b id="el">0:00</b></span><span>Keep this window open</span></div>
+    </div>
+
+    <div class="card" id="errc" style="display:none">
+      <h2>Something went wrong</h2>
+      <p class="err-box" id="errtxt"></p>
+      <button class="btn primary" onclick="regen()">↻ Try again</button>
+    </div>
+
+    <div class="go" id="go"><button id="gobtn">▶&nbsp; Start broadcast</button></div>
+  </div>
+
+  <div class="actions">
+    <a class="btn primary off" id="dl" href="/download">⬇&nbsp; Download HD video (MP4 · 1080×1920)</a>
+    <button class="btn" id="again" onclick="regen()" disabled>↻&nbsp; New broadcast with the latest news</button>
+    <span class="info" id="info"></span>
+  </div>
+  <div class="done-msg" id="done">That’s the end of the broadcast. Your video is ready to upload to YouTube — use the download button above.</div>
+
+  <details id="yt">
+    <summary>YouTube title, description &amp; chapters</summary>
+    <textarea id="ytxt" readonly></textarea>
+    <div class="actions"><button class="btn" id="copy">Copy text</button>
+      <span class="info">Tip: when you upload, switch on “Altered or synthetic content” — the presenter and voice are AI-generated.</span></div>
+  </details>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let ready = false, timer = null, loaded = "";
+const fmt = s => { s = Math.floor(s); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+
+async function poll(){
+  let s;
+  try { s = await (await fetch("/api/status", {cache:"no-store"})).json(); }
+  catch(e){ $("pill").textContent = "Server not reachable"; $("pill").className = "pill err"; return; }
+
+  if (s.studio) { document.title = s.studio; $("logosub").textContent = s.topic || "WORLD NEWS"; }
+
+  if (s.state === "running" || s.state === "idle"){
+    $("prep").style.display = ""; $("errc").style.display = "none"; $("go").style.display = "none";
+    $("v").style.display = "none"; $("still").style.display = "";
+    $("fill").style.width = (s.progress*100).toFixed(1) + "%";
+    $("ppct").textContent = Math.round(s.progress*100) + "%";
+    $("pmsg").textContent = s.message || "Working…";
+    $("el").textContent = fmt(s.elapsed);
+    const idx = s.stages.indexOf(s.stage);
+    document.querySelectorAll("#steps li").forEach((li,i)=>{ li.className = i < idx ? "done" : i === idx ? "active" : ""; });
+    $("pill").textContent = "Preparing broadcast…"; $("pill").className = "pill";
+    $("dl").classList.add("off"); $("again").disabled = true; ready = false;
+  } else if (s.state === "error"){
+    $("prep").style.display = "none"; $("errc").style.display = ""; $("errtxt").textContent = s.error;
+    $("pill").textContent = "Error"; $("pill").className = "pill err"; $("again").disabled = false;
+  } else if (s.state === "ready"){
+    $("prep").style.display = "none"; $("errc").style.display = "none";
+    $("pill").textContent = "Ready · " + fmt(s.duration || 0); $("pill").className = "pill live";
+    $("dl").classList.remove("off"); $("again").disabled = false;
+    $("info").textContent = s.filename + (s.duration ? "  ·  " + fmt(s.duration) : "") + "  ·  1080×1920 · 30 fps";
+    if (s.youtube) $("ytxt").value = s.youtube;
+    if (loaded !== s.filename){
+      loaded = s.filename;
+      const v = $("v"); v.src = "/video?f=" + encodeURIComponent(s.filename); v.style.display = "block"; $("still").style.display = "none";
+      $("done").style.display = "none"; $("dl").classList.remove("pulse");
+      $("go").style.display = "flex";
+      v.play().then(()=>{ $("go").style.display = "none"; }).catch(()=>{ /* browser needs a click */ });
+    }
+    ready = true;
+  }
+  timer = setTimeout(poll, ready ? 4000 : 1000);
+}
+
+$("gobtn").onclick = () => { $("go").style.display = "none"; $("v").currentTime = 0; $("v").play(); };
+$("go").onclick = e => { if (e.target.id === "go") $("gobtn").click(); };
+$("v").addEventListener("play", () => { $("go").style.display = "none"; $("done").style.display = "none"; $("dl").classList.remove("pulse"); });
+$("v").addEventListener("ended", () => { $("done").style.display = "block"; $("dl").classList.add("pulse"); });
+$("copy").onclick = async () => { try { await navigator.clipboard.writeText($("ytxt").value); $("copy").textContent = "Copied ✓"; }
+  catch(e){ $("ytxt").select(); document.execCommand("copy"); } setTimeout(()=>$("copy").textContent="Copy text",1800); };
+
+async function regen(){
+  if (!confirm("Create a fresh broadcast now? It takes a few minutes.")) return;
+  clearTimeout(timer); loaded = ""; ready = false;
+  $("v").pause(); $("v").removeAttribute("src");
+  await fetch("/api/generate", {method:"POST"});
+  poll();
+}
+poll();
+</script>
+</body>
+</html>
